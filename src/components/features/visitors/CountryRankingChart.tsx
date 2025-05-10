@@ -14,33 +14,34 @@ import { AnnualRankingDataPoint } from '@/dal/visitors';
 
 interface CountryRankingChartProps {
   rankingData: AnnualRankingDataPoint[];
-  year: number;
 }
 
-const CHART_BAR_COLOR = "#8884d8";
+const COLOR_2019 = "#8884d8";
+const COLOR_2024 = "#82ca9d";
 
-export default function CountryRankingChart({ rankingData, year }: CountryRankingChartProps) {
-  console.log('[CountryRankingChart] Received props - rankingData:', rankingData, 'year:', year);
+export default function CountryRankingChart({ rankingData }: CountryRankingChartProps) {
+  console.log('[CountryRankingChart] Received props - rankingData:', rankingData);
 
   if (!rankingData || rankingData.length === 0) {
     return (
       <div className="p-4 border rounded-md mt-6 bg-white dark:bg-gray-800 shadow text-center text-gray-500">
-        {year}年のランキングデータを表示できませんでした。
+        ランキングデータを表示できませんでした。
       </div>
     );
   }
 
-  // 固定サイズでチャートを表示
-  const chartHeight = Math.max(400, rankingData.length * 30);
-  const chartWidth = 600;
+  const chartHeight = Math.max(400, rankingData.length * 45);
+  const chartWidth = 700;
   
-  const maxTravelers = Math.max(...rankingData.map(d => d.totalTravelers), 0);
-  const xAxisDomainMax = maxTravelers > 0 ? Math.ceil(maxTravelers * 1.1 / 100000) * 100000 : 1000;
+  const maxTravelers2019 = Math.max(...rankingData.map(d => d.travelers2019 || 0), 0);
+  const maxTravelers2024 = Math.max(...rankingData.map(d => d.travelers2024 || 0), 0);
+  const maxOverallTravelers = Math.max(maxTravelers2019, maxTravelers2024);
+  const xAxisDomainMax = maxOverallTravelers > 0 ? Math.ceil(maxOverallTravelers * 1.1 / 100000) * 100000 : 1000;
 
   return (
     <div className="p-4 border rounded-md mt-8 bg-white dark:bg-gray-800 shadow-lg">
       <h3 className="text-lg font-semibold mb-4 text-center text-gray-700 dark:text-gray-200">
-        {year}年 国別 年間入国者数ランキング
+        国別 年間入国者数ランキング (2019年 vs 2024年)
       </h3>
       <div className="mx-auto" style={{ maxWidth: '100%', overflowX: 'auto' }}>
         <div style={{ width: `${chartWidth}px`, height: `${chartHeight}px` }}>
@@ -55,7 +56,8 @@ export default function CountryRankingChart({ rankingData, year }: CountryRankin
               left: 100,
               bottom: 20,
             }}
-            barSize={20}
+            barCategoryGap="30%"
+            barGap={4}
           >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis 
@@ -70,18 +72,29 @@ export default function CountryRankingChart({ rankingData, year }: CountryRankin
               interval={0}
             />
             <Tooltip
-              formatter={(value: number, name: string, props: any) => {
-                const percentage = props.payload?.percentage;
-                const displayValue = typeof value === 'number' ? value.toLocaleString() : value;
-                let tooltipContent = [`${displayValue} 人`, `合計入国者数`];
-                if (percentage !== undefined && percentage !== null) {
-                  tooltipContent = [`${displayValue} 人 (${percentage.toFixed(2)}%)`, `合計入国者数 (割合)`];
+              formatter={(value: number, name: string, entry: any) => {
+                const { payload } = entry;
+                let percentage: number | null = null;
+                let yearLabel = "";
+
+                if (name === "2019年 合計入国者数") {
+                  percentage = payload.percentage2019;
+                  yearLabel = "2019年";
+                } else if (name === "2024年 合計入国者数") {
+                  percentage = payload.percentage2024;
+                  yearLabel = "2024年";
                 }
-                return tooltipContent;
+
+                const displayValue = typeof value === 'number' ? value.toLocaleString() : String(value);
+                if (percentage !== null && percentage !== undefined) {
+                  return [`${displayValue} 人 (${percentage.toFixed(2)}%)`, `${yearLabel} 合計`];
+                }
+                return [`${displayValue} 人`, `${yearLabel} 合計`];
               }}
             />
             <Legend />
-            <Bar dataKey="totalTravelers" fill={CHART_BAR_COLOR} name={`${year}年 合計入国者数`} />
+            <Bar dataKey="travelers2019" fill={COLOR_2019} name="2019年 合計入国者数" barSize={12}/>
+            <Bar dataKey="travelers2024" fill={COLOR_2024} name="2024年 合計入国者数" barSize={12}/>
           </BarChart>
         </div>
       </div>

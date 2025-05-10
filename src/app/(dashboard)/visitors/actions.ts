@@ -1,34 +1,46 @@
 "use server";
 
-import { getAllUniqueCountries, getCountryMonthlyTrend, getTravelerDataForTable, getAnnualTravelerRanking } from "@/dal/visitors";
+import { PrismaClient } from '@/generated/prisma';
+import { TravelerDataPoint, AnnualRankingDataPoint, getTravelerDataForTable, getCountryMonthlyTrend, getAllUniqueCountries, getAnnualTravelerRanking } from '@/dal/visitors';
 
-export async function fetchAllUniqueCountriesAction() {
-  return getAllUniqueCountries();
+const prisma = new PrismaClient();
+
+export async function fetchAllUniqueCountriesAction(): Promise<string[] | null> {
+    try {
+        return await getAllUniqueCountries();
+    } catch (error) {
+        console.error("Error in fetchAllUniqueCountriesAction:", error);
+        return null;
+    }
 }
 
-export async function fetchCountryMonthlyTrendAction(country: string) {
-  if (!country) return null;
+export async function fetchCountryMonthlyTrendAction(country: string): Promise<{ year: number; month: number; travelers: number }[] | null> {
+    if (!country) return null;
+    try {
+        return await getCountryMonthlyTrend(country);
+    } catch (error) {
+        console.error(`Error in fetchCountryMonthlyTrendAction for ${country}:`, error);
+        return null;
+    }
+}
+
+export async function fetchTravelerDataForTableAction(targetCountries?: string[]): Promise<TravelerDataPoint[] | null> {
+    try {
+        return await getTravelerDataForTable(targetCountries);
+    } catch (error) {
+        console.error("Error in fetchTravelerDataForTableAction:", error);
+        return null;
+    }
+}
+
+export async function fetchAnnualTravelerRankingAction(
+  topN?: number
+): Promise<AnnualRankingDataPoint[] | null> {
   try {
-    const trendData = await getCountryMonthlyTrend(country);
-    return trendData;
+    const data = await getAnnualTravelerRanking(topN);
+    return data;
   } catch (error) {
-    console.error(`Error fetching trend data for ${country}:`, error);
-    return null; // エラー時はnullを返すか、エラー情報を返す
-  }
-}
-
-export async function fetchTravelerDataForTableAction(targetCountries?: string[]) {
-    return getTravelerDataForTable(targetCountries);
-}
-
-export async function fetchAnnualTravelerRankingAction(year: number, topN?: number) {
-  if (!year) return null;
-  try {
-    const rankingData = await getAnnualTravelerRanking(year, topN);
-    console.log('[Server Action] fetchAnnualTravelerRankingAction returning:', rankingData);
-    return rankingData;
-  } catch (error) {
-    console.error(`Error fetching annual traveler ranking for ${year} (top ${topN}):`, error);
+    console.error("Error in fetchAnnualTravelerRankingAction:", error);
     return null;
   }
 } 

@@ -46,11 +46,10 @@ export default function VisitorsAnalyticsClientContent({ initialTableData, initi
 
   // Ranking Chart States
   const [rankingChartData, setRankingChartData] = useState<AnnualRankingDataPoint[] | null>(null);
-  const [selectedYearForRanking, setSelectedYearForRanking] = useState<number>(2024);
-  const [selectedTopNForRanking, setSelectedTopNForRanking] = useState<number | 'all'>(10); // 'all' も許容
+  const [selectedTopNForRanking, setSelectedTopNForRanking] = useState<number | 'all'>(10);
   const [isLoadingRankingChart, setIsLoadingRankingChart] = useState(false);
 
-  console.log('[VisitorsAnalyticsClientContent] Rendering - rankingChartData:', rankingChartData, 'isLoadingRankingChart:', isLoadingRankingChart); // ステート確認ログ
+  console.log('[VisitorsAnalyticsClientContent] Rendering - rankingChartData:', rankingChartData, 'isLoadingRankingChart:', isLoadingRankingChart);
 
   useEffect(() => {
     if (initialUniqueCountries.length > 0 && uniqueCountriesForSelect.length === 0) {
@@ -85,9 +84,9 @@ export default function VisitorsAnalyticsClientContent({ initialTableData, initi
   useEffect(() => {
     const fetchData = async () => {
       setIsLoadingRankingChart(true); 
-      const topNValue = selectedTopNForRanking === 'all' ? undefined : selectedTopNForRanking;
+      const topNValue = selectedTopNForRanking === 'all' ? undefined : Number(selectedTopNForRanking);
       try {
-        const data = await fetchAnnualTravelerRankingAction(selectedYearForRanking, topNValue);
+        const data = await fetchAnnualTravelerRankingAction(topNValue);
         console.log('[RankingChart useEffect] Fetched data:', data);
         setRankingChartData(data);
       } catch (error) {
@@ -98,7 +97,7 @@ export default function VisitorsAnalyticsClientContent({ initialTableData, initi
       }
     };
     fetchData();
-  }, [selectedYearForRanking, selectedTopNForRanking]);
+  }, [selectedTopNForRanking]);
 
   const handleCountryChangeForChart = (country: string) => {
     setSelectedCountryForChart(country === "none" ? null : country);
@@ -176,25 +175,10 @@ export default function VisitorsAnalyticsClientContent({ initialTableData, initi
         <VisitorsHeatmap data={tableData} uniqueCountries={uniqueCountriesForSelect} />
       )}
 
-      {/* Ranking Chart Section - 仮配置 */}
+      {/* Ranking Chart Section */}
       <div className="mt-10">
-        <h2 className="text-2xl font-semibold mb-6 text-center">国別 年間入国者数ランキング</h2>
+        <h2 className="text-2xl font-semibold mb-6 text-center">国別 年間入国者数ランキング (2019年 vs 2024年)</h2>
         <div className="flex flex-col sm:flex-row items-center gap-4 p-4 mb-4 bg-card dark:bg-card rounded-lg shadow-lg">
-          <Label htmlFor="year-select-ranking" className="text-sm font-medium whitespace-nowrap">
-            対象年:
-          </Label>
-          <Select 
-            value={selectedYearForRanking.toString()} 
-            onValueChange={(value) => setSelectedYearForRanking(parseInt(value))}
-          >
-            <SelectTrigger id="year-select-ranking" className="w-full sm:w-[120px] focus:ring-2 focus:ring-primary">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="2024">2024年</SelectItem>
-              <SelectItem value="2019">2019年</SelectItem>
-            </SelectContent>
-          </Select>
           <Label htmlFor="topN-select-ranking" className="text-sm font-medium whitespace-nowrap ml-0 sm:ml-4">
             表示件数:
           </Label>
@@ -217,7 +201,7 @@ export default function VisitorsAnalyticsClientContent({ initialTableData, initi
           <div className="flex justify-center items-center h-64"><p className="text-muted-foreground">ランキングデータをロード中...</p></div>
         )}
         {!isLoadingRankingChart && rankingChartData && rankingChartData.length > 0 && ( 
-          <CountryRankingChart rankingData={rankingChartData} year={selectedYearForRanking} />
+          <CountryRankingChart rankingData={rankingChartData} />
         )}
         {!isLoadingRankingChart && (!rankingChartData || rankingChartData.length === 0) && ( 
           <div className="text-center text-destructive p-4 bg-destructive/10 rounded-md shadow my-4">

@@ -152,42 +152,69 @@ export async function getAllUniqueCountries(): Promise<string[]> {
 
 export interface AnnualRankingDataPoint {
   country: string;
-  totalTravelers: number;
-  year: number;
-  percentage: number;
+  travelers2019: number | null;
+  percentage2019: number | null;
+  travelers2024: number | null;
+  percentage2024: number | null;
 }
 
 export async function getAnnualTravelerRanking(
-  year: number,
-  topN?: number
+  topN?: number,
+  sortYear: 2019 | 2024 = 2024
 ): Promise<AnnualRankingDataPoint[]> {
-  const monthlyStats = await prisma.monthlyTravelerStats.findMany({
-    where: { year },
-    select: { country: true, travelers: true },
+  const stats = await prisma.monthlyTravelerStats.findMany({
+    where: { OR: [{ year: 2019 }, { year: 2024 }] },
+    select: { country: true, travelers: true, year: true },
   });
 
-  const aggregatedByCountry: Record<string, number> = {};
-  let grandTotalTravelers = 0;
+  const aggregatedByYearAndCountry: Record<number, Record<string, number>> = { 2019: {}, 2024: {} };
+  const grandTotalByYear: Record<number, number> = { 2019: 0, 2024: 0 };
 
-  for (const stat of monthlyStats) {
-    if (!aggregatedByCountry[stat.country]) {
-      aggregatedByCountry[stat.country] = 0;
+  for (const stat of stats) {
+    const year = stat.year;
+    if (!aggregatedByYearAndCountry[year]) {
+      aggregatedByYearAndCountry[year] = {};
     }
-    aggregatedByCountry[stat.country] += stat.travelers;
-    grandTotalTravelers += stat.travelers;
+    if (!aggregatedByYearAndCountry[year][stat.country]) {
+      aggregatedByYearAndCountry[year][stat.country] = 0;
+    }
+    aggregatedByYearAndCountry[year][stat.country] += stat.travelers;
+    grandTotalByYear[year] = (grandTotalByYear[year] || 0) + stat.travelers;
   }
 
-  const rankedDataWithPercentage: AnnualRankingDataPoint[] = Object.entries(aggregatedByCountry)
-    .map(([country, totalTravelers]) => ({
-      country,
-      totalTravelers,
-      year,
-      percentage: grandTotalTravelers > 0 ? parseFloat(((totalTravelers / grandTotalTravelers) * 100).toFixed(2)) : 0,
-    }))
-    .sort((a, b) => b.totalTravelers - a.totalTravelers);
+  const allCountries = Array.from(new Set(stats.map(s => s.country)));
+
+  let combinedData: AnnualRankingDataPoint[] = allCountries.map(country => {
+    const t2019 = aggregatedByYearAndCountry[2019]?.[country];
+    const t2024 = aggregatedByYearAndCountry[2024]?.[country];
+
+    const travelers2019 = t2019 ?? null;
+    const percentage2019 = (grandTotalByYear[2019] && typeof t2019 === 'number' && grandTotalByYear[2019] > 0)
+      ? parseFloat(((t2019 / grandTotalByYear[2019]) * 100).toFixed(2))
+      : null;
+
+    const travelers2024 = t2024 ?? null;
+    const percentage2024 = (grandTotalByYear[2024] && typeof t2024 === 'number' && grandTotalByYear[2024] > 0)
+      ? parseFloat(((t2024 / grandTotalByYear[2024]) * 100).toFixed(2))
+      : null;
+      
+    return { 
+      country, 
+      travelers2019, 
+      percentage2019, 
+      travelers2024, 
+      percentage2024 
+    };
+  });
+
+  combinedData.sort((a, b) => {
+    const valA = sortYear === 2024 ? (a.travelers2024 ?? 0) : (a.travelers2019 ?? 0);
+    const valB = sortYear === 2024 ? (b.travelers2024 ?? 0) : (b.travelers2019 ?? 0);
+    return valB - valA;
+  });
 
   if (topN && topN > 0) {
-    return rankedDataWithPercentage.slice(0, topN);
+    return combinedData.slice(0, topN);
   }
-  return rankedDataWithPercentage;
+  return combinedData;
 } 
