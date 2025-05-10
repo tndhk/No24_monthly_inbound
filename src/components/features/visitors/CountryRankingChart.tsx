@@ -70,7 +70,15 @@ export default function CountryRankingChart({ rankingData, year }: CountryRankin
               interval={0}
             />
             <Tooltip
-              formatter={(value: number) => [`${value.toLocaleString()} 人`, `合計入国者数`]}
+              formatter={(value: number, name: string, props: any) => {
+                const percentage = props.payload?.percentage;
+                const displayValue = typeof value === 'number' ? value.toLocaleString() : value;
+                let tooltipContent = [`${displayValue} 人`, `合計入国者数`];
+                if (percentage !== undefined && percentage !== null) {
+                  tooltipContent = [`${displayValue} 人 (${percentage.toFixed(2)}%)`, `合計入国者数 (割合)`];
+                }
+                return tooltipContent;
+              }}
             />
             <Legend />
             <Bar dataKey="totalTravelers" fill={CHART_BAR_COLOR} name={`${year}年 合計入国者数`} />

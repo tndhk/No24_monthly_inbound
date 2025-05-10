@@ -154,6 +154,7 @@ export interface AnnualRankingDataPoint {
   country: string;
   totalTravelers: number;
   year: number;
+  percentage: number;
 }
 
 export async function getAnnualTravelerRanking(
@@ -166,24 +167,27 @@ export async function getAnnualTravelerRanking(
   });
 
   const aggregatedByCountry: Record<string, number> = {};
+  let grandTotalTravelers = 0;
 
   for (const stat of monthlyStats) {
     if (!aggregatedByCountry[stat.country]) {
       aggregatedByCountry[stat.country] = 0;
     }
     aggregatedByCountry[stat.country] += stat.travelers;
+    grandTotalTravelers += stat.travelers;
   }
 
-  const rankedData: AnnualRankingDataPoint[] = Object.entries(aggregatedByCountry)
+  const rankedDataWithPercentage: AnnualRankingDataPoint[] = Object.entries(aggregatedByCountry)
     .map(([country, totalTravelers]) => ({
       country,
       totalTravelers,
       year,
+      percentage: grandTotalTravelers > 0 ? parseFloat(((totalTravelers / grandTotalTravelers) * 100).toFixed(2)) : 0,
     }))
     .sort((a, b) => b.totalTravelers - a.totalTravelers);
 
   if (topN && topN > 0) {
-    return rankedData.slice(0, topN);
+    return rankedDataWithPercentage.slice(0, topN);
   }
-  return rankedData;
+  return rankedDataWithPercentage;
 } 
