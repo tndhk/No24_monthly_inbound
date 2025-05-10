@@ -148,4 +148,42 @@ export async function getAllUniqueCountries(): Promise<string[]> {
         }
     });
     return distinctCountries.map(c => c.country);
+}
+
+export interface AnnualRankingDataPoint {
+  country: string;
+  totalTravelers: number;
+  year: number;
+}
+
+export async function getAnnualTravelerRanking(
+  year: number,
+  topN?: number
+): Promise<AnnualRankingDataPoint[]> {
+  const monthlyStats = await prisma.monthlyTravelerStats.findMany({
+    where: { year },
+    select: { country: true, travelers: true },
+  });
+
+  const aggregatedByCountry: Record<string, number> = {};
+
+  for (const stat of monthlyStats) {
+    if (!aggregatedByCountry[stat.country]) {
+      aggregatedByCountry[stat.country] = 0;
+    }
+    aggregatedByCountry[stat.country] += stat.travelers;
+  }
+
+  const rankedData: AnnualRankingDataPoint[] = Object.entries(aggregatedByCountry)
+    .map(([country, totalTravelers]) => ({
+      country,
+      totalTravelers,
+      year,
+    }))
+    .sort((a, b) => b.totalTravelers - a.totalTravelers);
+
+  if (topN && topN > 0) {
+    return rankedData.slice(0, topN);
+  }
+  return rankedData;
 } 

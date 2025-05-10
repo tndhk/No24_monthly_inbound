@@ -1,6 +1,6 @@
 "use server";
 
-import { getAllUniqueCountries, getCountryMonthlyTrend, getTravelerDataForTable } from "@/dal/visitors";
+import { getAllUniqueCountries, getCountryMonthlyTrend, getTravelerDataForTable, getAnnualTravelerRanking } from "@/dal/visitors";
 
 export async function fetchAllUniqueCountriesAction() {
   return getAllUniqueCountries();
@@ -19,4 +19,16 @@ export async function fetchCountryMonthlyTrendAction(country: string) {
 
 export async function fetchTravelerDataForTableAction(targetCountries?: string[]) {
     return getTravelerDataForTable(targetCountries);
+}
+
+export async function fetchAnnualTravelerRankingAction(year: number, topN?: number) {
+  if (!year) return null;
+  try {
+    const rankingData = await getAnnualTravelerRanking(year, topN);
+    console.log('[Server Action] fetchAnnualTravelerRankingAction returning:', rankingData);
+    return rankingData;
+  } catch (error) {
+    console.error(`Error fetching annual traveler ranking for ${year} (top ${topN}):`, error);
+    return null;
+  }
 } 
