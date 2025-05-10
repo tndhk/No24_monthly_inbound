@@ -1,7 +1,7 @@
 "use server";
 
 import { PrismaClient } from '@/generated/prisma';
-import { TravelerDataPoint, AnnualRankingDataPoint, getTravelerDataForTable, getCountryMonthlyTrend, getAllUniqueCountries, getAnnualTravelerRanking } from '@/dal/visitors';
+import { TravelerDataPoint, AnnualRankingDataPoint, MonthlyDataPoint, getTravelerDataForTable, getCountryMonthlyTrend, getAllUniqueCountries, getAnnualTravelerRanking, getCountryMonthlyTrendByYear } from '@/dal/visitors';
 
 const prisma = new PrismaClient();
 
@@ -41,6 +41,20 @@ export async function fetchAnnualTravelerRankingAction(
     return data;
   } catch (error) {
     console.error("Error in fetchAnnualTravelerRankingAction:", error);
+    return null;
+  }
+}
+
+export async function fetchCountryMonthlyTrendByYearAction(
+  country: string,
+  year: number
+): Promise<MonthlyDataPoint[] | null> {
+  if (!country || !year) return null;
+  try {
+    const data = await getCountryMonthlyTrendByYear(country, year);
+    return data;
+  } catch (error) {
+    console.error(`Error in fetchCountryMonthlyTrendByYearAction for ${country}, ${year}:`, error);
     return null;
   }
 } 

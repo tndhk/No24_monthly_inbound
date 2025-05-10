@@ -217,4 +217,26 @@ export async function getAnnualTravelerRanking(
     return combinedData.slice(0, topN);
   }
   return combinedData;
+}
+
+export interface MonthlyDataPoint {
+  year: number;
+  month: number;
+  travelers: number;
+  country: string; // どの国のデータかを示すために追加
+}
+
+export async function getCountryMonthlyTrendByYear(
+  country: string,
+  year: number
+): Promise<MonthlyDataPoint[]> {
+  const stats = await prisma.monthlyTravelerStats.findMany({
+    where: {
+      country: country,
+      year: year,
+    },
+    orderBy: [{ month: 'asc' }],
+    select: { year: true, month: true, travelers: true, country: true }, 
+  });
+  return stats.map(stat => ({ ...stat })); // country も含める
 } 

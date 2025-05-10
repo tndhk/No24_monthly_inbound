@@ -10,7 +10,7 @@ export default async function VisitorsAnalyticsPage() {
     <div className="container mx-auto py-6 sm:py-8 px-3 sm:px-4 md:px-6 lg:px-8 min-h-screen">
       <header className="mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-center text-gray-800 dark:text-gray-100">
-          訪日外客数 月別トレンド分析
+          訪日客数 国別月別トレンド分析
         </h1>
       </header>
       

@@ -5,6 +5,7 @@ import VisitorsTable from '@/components/features/visitors/VisitorsTable';
 import VisitorsLineChart from '@/components/features/visitors/VisitorsLineChart';
 import VisitorsHeatmap from '@/components/features/visitors/VisitorsHeatmap';
 import CountryRankingChart from '@/components/features/visitors/CountryRankingChart';
+import SingleYearMonthlyTrendChart from '@/components/features/visitors/SingleYearMonthlyTrendChart';
 import {
   Select,
   SelectContent,
@@ -15,8 +16,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { fetchAllUniqueCountriesAction, fetchCountryMonthlyTrendAction, fetchTravelerDataForTableAction, fetchAnnualTravelerRankingAction } from '@/app/(dashboard)/visitors/actions';
-import { TravelerDataPoint, AnnualRankingDataPoint } from '@/dal/visitors';
+import { fetchAllUniqueCountriesAction, fetchCountryMonthlyTrendAction, fetchTravelerDataForTableAction, fetchAnnualTravelerRankingAction, fetchCountryMonthlyTrendByYearAction } from '@/app/(dashboard)/visitors/actions';
+import { TravelerDataPoint, AnnualRankingDataPoint, MonthlyDataPoint } from '@/dal/visitors';
 
 interface MonthlyTrendData {
   year: number;
@@ -49,6 +50,11 @@ export default function VisitorsAnalyticsClientContent({ initialTableData, initi
   const [selectedTopNForRanking, setSelectedTopNForRanking] = useState<number | 'all'>(10);
   const [isLoadingRankingChart, setIsLoadingRankingChart] = useState(false);
 
+  // State for Single Year (2024) Monthly Trend Chart
+  const [singleYearTrendData, setSingleYearTrendData] = useState<MonthlyDataPoint[] | null>(null);
+  const [isLoadingSingleYearChart, startSingleYearChartTransition] = useTransition();
+  const YEAR_FOR_SINGLE_TREND = 2024; // 固定で2024年
+
   console.log('[VisitorsAnalyticsClientContent] Rendering - rankingChartData:', rankingChartData, 'isLoadingRankingChart:', isLoadingRankingChart);
 
   useEffect(() => {
@@ -79,6 +85,19 @@ export default function VisitorsAnalyticsClientContent({ initialTableData, initi
       setCountryTrendData(null);
     }
   }, [selectedCountryForChart]);
+
+  // useEffect for new Single Year (2024) Trend Chart
+  useEffect(() => {
+    if (selectedCountryForChart) {
+      setSingleYearTrendData(null);
+      startSingleYearChartTransition(async () => {
+        const trend = await fetchCountryMonthlyTrendByYearAction(selectedCountryForChart, YEAR_FOR_SINGLE_TREND);
+        setSingleYearTrendData(trend);
+      });
+    } else {
+      setSingleYearTrendData(null);
+    }
+  }, [selectedCountryForChart]); // selectedCountryForChartに依存
 
   // Fetch data for Ranking Chart
   useEffect(() => {
@@ -168,6 +187,21 @@ export default function VisitorsAnalyticsClientContent({ initialTableData, initi
         ) : (
           <div className="text-center text-destructive p-4 bg-destructive/10 rounded-md shadow my-4">{selectedCountryForChart}のグラフデータの取得に失敗したか、データが存在しません。</div>
         )
+      )}
+
+      {/* New Single Year (2024) Monthly Trend Chart Display */}
+      {selectedCountryForChart && (
+        isLoadingSingleYearChart ? (
+          <div className="flex justify-center items-center h-64 mt-8"><p className="text-muted-foreground">{YEAR_FOR_SINGLE_TREND}年 月別推移グラフをロード中 ({selectedCountryForChart})...</p></div>
+        ) : singleYearTrendData && singleYearTrendData.length > 0 ? (
+          <SingleYearMonthlyTrendChart 
+            countryName={selectedCountryForChart} 
+            trendData={singleYearTrendData} 
+            year={YEAR_FOR_SINGLE_TREND}
+          />
+        ) : !isLoadingSingleYearChart && countryTrendData /* countryTrendDataがある(つまり国が選ばれている)がsingleYearTrendDataがない場合 */ ? (
+          <div className="text-center text-destructive p-4 bg-destructive/10 rounded-md shadow my-4 mt-8">{selectedCountryForChart}の{YEAR_FOR_SINGLE_TREND}年 月別推移データの取得に失敗したか、データが存在しません。</div>
+        ) : null
       )}
 
       {/* Heatmap */}
